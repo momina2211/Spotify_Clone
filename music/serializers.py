@@ -1,4 +1,3 @@
-# music/serializers.py
 from rest_framework import serializers
 from music.models import Song, Genre
 from music.utils import get_or_create_genre

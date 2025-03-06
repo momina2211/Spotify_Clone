@@ -3,7 +3,7 @@ import os
 import logging
 from botocore.exceptions import ClientError
 
-from music.models import Genre
+from music.models import Genre, Album
 
 
 def upload_to_s3(file_obj, folder="songs/"):
@@ -33,4 +33,14 @@ def get_or_create_genre(genre_title, user):
             defaults={'user': user}  # Set the user when creating a new genre
         )
         return genre, created  # Return both the genre and the created status
+    return None, False
+
+def get_or_create_album(album_title, user):
+    """Gets an existing album or creates a new one."""
+    if album_title:
+        album, created = Album.objects.get_or_create(
+            album=album_title,
+            defaults={'user': user}
+        )
+        return album, created
     return None, False
