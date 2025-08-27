@@ -39,7 +39,7 @@ def get_or_create_album(album_title, user):
     """Gets an existing album or creates a new one."""
     if album_title:
         album, created = Album.objects.get_or_create(
-            album=album_title,
+            title=album_title,
             defaults={'user': user}
         )
         return album, created

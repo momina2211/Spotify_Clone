@@ -34,3 +34,14 @@ class Song(UUIDModel):
 
     def __str__(self):
         return self.title
+
+
+class SongLike(UUIDModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='song_likes')
+    song = models.ForeignKey('Song', on_delete=models.CASCADE, related_name='likes_rel')
+
+    class Meta:
+        unique_together = ('user', 'song')
+
+    def __str__(self):
+        return f"{self.user.username} likes {self.song.title}"
