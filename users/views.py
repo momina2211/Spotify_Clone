@@ -1,12 +1,16 @@
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
-from rest_framework import  generics
+from rest_framework import generics, viewsets
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.decorators import action
 from django.contrib.auth import authenticate
+from django.db.models import Count, Q
 from users.models import *
 from users.serializers import *
+from users.role_enum import RoleEnum
 from rest_framework.permissions import IsAuthenticated
+from music.models import ArtistFollow, Song, Album
 
 
 class UserViewSet(generics.ListCreateAPIView, generics.RetrieveUpdateDestroyAPIView):
@@ -82,3 +86,139 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
         serializer.is_valid(raise_exception=True)
         profile = serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ArtistViewSet(viewsets.ViewSet):
+    """ViewSet for artist-related operations"""
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
+    @action(detail=False, methods=['get'])
+    def list_artists(self, request):
+        """List all artists"""
+        artists = User.objects.filter(role=RoleEnum.ARTIST.value).annotate(
+            song_count=Count('songs'),
+            follower_count=Count('followers')
+        )
+        
+        # Search filter
+        search = request.query_params.get('search', None)
+        if search:
+            artists = artists.filter(username__icontains=search)
+        
+        results = [{
+            'id': str(artist.id),
+            'username': artist.username,
+            'email': artist.email,
+            'song_count': artist.song_count,
+            'follower_count': artist.follower_count,
+            'is_following': ArtistFollow.objects.filter(
+                user=request.user,
+                artist=artist
+            ).exists() if request.user.is_authenticated else False
+        } for artist in artists[:50]]
+        
+        return Response(results)
+
+    @action(detail=True, methods=['post', 'delete'])
+    def follow(self, request, pk=None):
+        """Follow or unfollow an artist"""
+        try:
+            artist = User.objects.get(id=pk, role=RoleEnum.ARTIST.value)
+        except User.DoesNotExist:
+            return Response({"error": "Artist not found"}, 
+                          status=status.HTTP_404_NOT_FOUND)
+        
+        if artist == request.user:
+            return Response({"error": "Cannot follow yourself"}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        if request.method == 'POST':
+            follow, created = ArtistFollow.objects.get_or_create(
+                user=request.user,
+                artist=artist
+            )
+            if created:
+                return Response({"message": f"Now following {artist.username}"}, 
+                              status=status.HTTP_201_CREATED)
+            return Response({"message": "Already following this artist"})
+        
+        elif request.method == 'DELETE':
+            deleted = ArtistFollow.objects.filter(
+                user=request.user,
+                artist=artist
+            ).delete()
+            if deleted[0]:
+                return Response({"message": f"Unfollowed {artist.username}"})
+            return Response({"error": "Not following this artist"}, 
+                          status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=False, methods=['get'])
+    def following(self, request):
+        """Get artists the user is following"""
+        following = ArtistFollow.objects.filter(user=request.user).select_related('artist')
+        artists = [f.artist for f in following]
+        results = [{
+            'id': str(artist.id),
+            'username': artist.username,
+            'email': artist.email,
+            'song_count': artist.songs.count(),
+            'followed_at': f.followed_at.isoformat()
+        } for f, artist in zip(following, artists)]
+        return Response(results)
+
+    @action(detail=False, methods=['get'])
+    def followers(self, request):
+        """Get user's followers (if user is an artist)"""
+        if request.user.role != RoleEnum.ARTIST.value:
+            return Response({"error": "Only artists have followers"}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        followers = ArtistFollow.objects.filter(artist=request.user).select_related('user')
+        results = [{
+            'id': str(f.user.id),
+            'username': f.user.username,
+            'email': f.user.email,
+            'followed_at': f.followed_at.isoformat()
+        } for f in followers]
+        return Response(results)
+
+    @action(detail=True, methods=['get'])
+    def profile(self, request, pk=None):
+        """Get artist profile with stats"""
+        try:
+            artist = User.objects.get(id=pk, role=RoleEnum.ARTIST.value)
+        except User.DoesNotExist:
+            return Response({"error": "Artist not found"}, 
+                          status=status.HTTP_404_NOT_FOUND)
+        
+        profile_data = {
+            'id': str(artist.id),
+            'username': artist.username,
+            'email': artist.email,
+            'song_count': artist.songs.count(),
+            'album_count': Album.objects.filter(user=artist).count(),
+            'follower_count': ArtistFollow.objects.filter(artist=artist).count(),
+            'total_plays': artist.songs.aggregate(total=Count('play_count'))['total'] or 0,
+            'total_likes': artist.songs.aggregate(total=Count('likes'))['total'] or 0,
+            'is_following': ArtistFollow.objects.filter(
+                user=request.user,
+                artist=artist
+            ).exists() if request.user.is_authenticated else False
+        }
+        
+        return Response(profile_data)
+
+    @action(detail=True, methods=['get'])
+    def songs(self, request, pk=None):
+        """Get all songs by an artist"""
+        try:
+            artist = User.objects.get(id=pk, role=RoleEnum.ARTIST.value)
+        except User.DoesNotExist:
+            return Response({"error": "Artist not found"}, 
+                          status=status.HTTP_404_NOT_FOUND)
+        
+        from music.serializers import SongSerializer
+        songs = artist.songs.filter(visibility=1)  # Public songs only
+        serializer = SongSerializer(songs, many=True)
+        return Response(serializer.data)

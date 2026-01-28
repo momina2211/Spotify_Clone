@@ -12,6 +12,8 @@ boto3 = "*"
 django-storages = "*"
 django = "*"
 django-cors-headers = "*"
+stripe = ">=5.4.0,<6.0.0"
+dj-stripe = "*"
 
 [dev-packages]
 
