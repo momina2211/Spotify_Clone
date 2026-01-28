@@ -2,6 +2,7 @@ import boto3
 import os
 import logging
 from botocore.exceptions import ClientError
+from django.core.exceptions import ValidationError
 
 from music.models import Genre, Album
 
@@ -44,3 +45,48 @@ def get_or_create_album(album_title, user):
         )
         return album, created
     return None, False
+
+
+def validate_audio_file(file_obj):
+    """
+    Validate audio file before upload.
+    Returns error message if validation fails, None if valid.
+    """
+    # Allowed audio file extensions
+    ALLOWED_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.flac', '.ogg', '.aac']
+    MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
+    
+    # Check file extension
+    file_name = file_obj.name.lower()
+    if not any(file_name.endswith(ext) for ext in ALLOWED_EXTENSIONS):
+        return f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
+    
+    # Check file size
+    if file_obj.size > MAX_FILE_SIZE:
+        return f"File size exceeds maximum allowed size of {MAX_FILE_SIZE / (1024*1024)} MB"
+    
+    if file_obj.size == 0:
+        return "File is empty"
+    
+    return None
+
+
+def validate_image_file(file_obj):
+    """
+    Validate image file before upload.
+    Returns error message if validation fails, None if valid.
+    """
+    ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+    
+    file_name = file_obj.name.lower()
+    if not any(file_name.endswith(ext) for ext in ALLOWED_EXTENSIONS):
+        return f"Invalid image type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
+    
+    if file_obj.size > MAX_FILE_SIZE:
+        return f"Image size exceeds maximum allowed size of {MAX_FILE_SIZE / (1024*1024)} MB"
+    
+    if file_obj.size == 0:
+        return "Image file is empty"
+    
+    return None

@@ -23,6 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('users.urls')),
     path('api/', include('music.urls')),
+    # path('api/', include('payments.urls')),
 path('api-token-auth/', views.obtain_auth_token),
 ]
 if settings.DEBUG:

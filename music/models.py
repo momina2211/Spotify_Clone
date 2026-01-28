@@ -45,3 +45,68 @@ class SongLike(UUIDModel):
 
     def __str__(self):
         return f"{self.user.username} likes {self.song.title}"
+
+
+class RecentlyPlayed(UUIDModel):
+    """Track recently played songs for users"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='recently_played')
+    song = models.ForeignKey(Song, on_delete=models.CASCADE, related_name='recent_plays')
+    played_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-played_at']
+        unique_together = ('user', 'song')
+        indexes = [
+            models.Index(fields=['user', '-played_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} played {self.song.title}"
+
+
+class FavoriteSong(UUIDModel):
+    """User's favorite/saved songs"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorite_songs')
+    song = models.ForeignKey(Song, on_delete=models.CASCADE, related_name='favorited_by')
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'song')
+        ordering = ['-added_at']
+
+    def __str__(self):
+        return f"{self.user.username} favorited {self.song.title}"
+
+
+class FavoriteAlbum(UUIDModel):
+    """User's favorite/saved albums"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorite_albums')
+    album = models.ForeignKey(Album, on_delete=models.CASCADE, related_name='favorited_by')
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'album')
+        ordering = ['-added_at']
+
+    def __str__(self):
+        return f"{self.user.username} favorited {self.album.title}"
+
+
+class ArtistFollow(UUIDModel):
+    """Follow relationship between users and artists"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='following')
+    artist = models.ForeignKey(User, on_delete=models.CASCADE, related_name='followers')
+    followed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'artist')
+        ordering = ['-followed_at']
+        constraints = [
+            models.CheckConstraint(
+                check=~models.Q(user=models.F('artist')),
+                name='cannot_follow_self'
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} follows {self.artist.username}"

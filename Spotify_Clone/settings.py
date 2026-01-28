@@ -42,13 +42,15 @@ INSTALLED_APPS = [
     ]
 LOCAL_APPS = [
     'users',
-    'music'
+    'music',
+    'payments'
 ]
 THIRD_PARTY_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'debug_toolbar',
-    'corsheaders'
+    'corsheaders',
+    'djstripe',
 ]
 INSTALLED_APPS += LOCAL_APPS + THIRD_PARTY_APPS
 MIDDLEWARE = [
@@ -129,6 +131,32 @@ AWS_S3_CUSTOM_DOMAIN = (
 AWS_S3_USERNAME=os.getenv('AWS_S3_USERNAME')
 AWS_S3_PASSWORD=os.getenv('AWS_S3_PASSWORD')
 
+# Stripe Configuration
+STRIPE_LIVE_PUBLIC_KEY = os.environ.get("STRIPE_LIVE_PUBLIC_KEY")
+STRIPE_LIVE_SECRET_KEY = os.environ.get("STRIPE_LIVE_SECRET_KEY")
+STRIPE_TEST_PUBLIC_KEY = os.environ.get("STRIPE_TEST_PUBLIC_KEY")
+STRIPE_TEST_SECRET_KEY = os.environ.get("STRIPE_TEST_SECRET_KEY")
+STRIPE_LIVE_MODE = False  # Change to True in production
+DJSTRIPE_WEBHOOK_SECRET = os.environ.get("DJSTRIPE_WEBHOOK_SECRET")
+DJSTRIPE_USE_NATIVE_JSONFIELD = True  # Recommended for new installations
+DJSTRIPE_FOREIGN_KEY_TO_FIELD = "id"
+
+# This will use the appropriate key based on the environment
+if STRIPE_LIVE_MODE:
+    STRIPE_PUBLIC_KEY = STRIPE_LIVE_PUBLIC_KEY
+    STRIPE_SECRET_KEY = STRIPE_LIVE_SECRET_KEY
+else:
+    STRIPE_PUBLIC_KEY = STRIPE_TEST_PUBLIC_KEY
+    STRIPE_SECRET_KEY = STRIPE_TEST_SECRET_KEY
+
+# Initialize Stripe
+import stripe
+stripe.api_key = STRIPE_SECRET_KEY
+
+# Subscription settings
+FREE_TRIAL_DAYS = 30  # 30-day free trial for new premium users
+
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -175,9 +203,14 @@ else:
 # CORS
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOWED_ORIGINS = [
+        'http://localhost:5173',  # Vite default port
+        'http://localhost:3000',
+        'http://127.0.0.1:5173',
+    ]
 else:
     CORS_ALLOWED_ORIGINS = [
-        os.getenv('CORS_ALLOWED_ORIGIN', 'http://localhost:3000'),
+        os.getenv('CORS_ALLOWED_ORIGIN', 'http://localhost:5173'),
     ]
 
 # Default primary key field type
@@ -189,3 +222,21 @@ AUTH_USER_MODEL = 'users.User'
 INTERNAL_IPS = ['127.0.0.1']
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760
+
+# Stripe Configuration
+STRIPE_LIVE_PUBLIC_KEY = os.environ.get("STRIPE_PUBLIC_KEY", "")
+STRIPE_LIVE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_TEST_PUBLIC_KEY = os.environ.get("STRIPE_TEST_PUBLIC_KEY", "")
+STRIPE_TEST_SECRET_KEY = os.environ.get("STRIPE_TEST_SECRET_KEY", "")
+STRIPE_LIVE_MODE = os.environ.get("STRIPE_LIVE_MODE", "False").lower() == "true"
+DJSTRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+DJSTRIPE_USE_NATIVE_JSONFIELD = True
+DJSTRIPE_FOREIGN_KEY_TO_FIELD = "id"
+
+
+
+# dj-stripe settings
+DJSTRIPE_SUBSCRIBER_MODEL = 'users.User'
+
+
+
