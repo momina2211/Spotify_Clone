@@ -2,7 +2,12 @@
 import uuid
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from djstripe.models import Price as StripePrice
+
+try:
+    from djstripe.models import Price as StripePrice
+except (ImportError, AttributeError):
+    # Fallback if dj-stripe is not properly configured
+    StripePrice = None
 
 from users.base_model import UUIDModel
 
@@ -25,7 +30,7 @@ class SubscriptionPlan(UUIDModel):
         unique=True
     )
     stripe_price = models.ForeignKey(
-        StripePrice,
+        'djstripe.Price',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

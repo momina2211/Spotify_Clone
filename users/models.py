@@ -4,11 +4,21 @@ from datetime import timezone
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-from payments.models import SubscriptionPlan
+# Conditional import to avoid dj-stripe compatibility issues
+try:
+    from payments.models import SubscriptionPlan
+except (ImportError, AttributeError, RuntimeError):
+    SubscriptionPlan = None
+
 from users.base_model import UUIDModel
 from users.role_enum import RoleEnum
-from djstripe.models import Customer as StripeCustomer
-from djstripe.models import Subscription as StripeSubscription
+
+try:
+    from djstripe.models import Customer as StripeCustomer
+    from djstripe.models import Subscription as StripeSubscription
+except (ImportError, AttributeError, RuntimeError):
+    StripeCustomer = None
+    StripeSubscription = None
 
 
 
@@ -26,21 +36,21 @@ class UserProfile(UUIDModel):
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
 
     subscription_plan = models.ForeignKey(
-        SubscriptionPlan,
+        'payments.SubscriptionPlan',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='subscribers'
     )
     stripe_customer = models.OneToOneField(
-        StripeCustomer,
+        'djstripe.Customer',
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
         related_name='user_profile'
     )
     stripe_subscription = models.OneToOneField(
-        StripeSubscription,
+        'djstripe.Subscription',
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -190,7 +200,7 @@ def has_active_subscription(self):
 
 def update_subscription_features(self):
     """Update user features based on their subscription plan."""
-    if not self.subscription_plan:
+    if not self.subscription_plan or SubscriptionPlan is None:
         return
 
     features = self.subscription_plan.get_features()

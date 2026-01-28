@@ -51,7 +51,6 @@ THIRD_PARTY_APPS = [
     'debug_toolbar',
     'corsheaders',
     'djstripe',
-    'stripe',
 ]
 INSTALLED_APPS += LOCAL_APPS + THIRD_PARTY_APPS
 MIDDLEWARE = [
@@ -204,9 +203,14 @@ else:
 # CORS
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOWED_ORIGINS = [
+        'http://localhost:5173',  # Vite default port
+        'http://localhost:3000',
+        'http://127.0.0.1:5173',
+    ]
 else:
     CORS_ALLOWED_ORIGINS = [
-        os.getenv('CORS_ALLOWED_ORIGIN', 'http://localhost:3000'),
+        os.getenv('CORS_ALLOWED_ORIGIN', 'http://localhost:5173'),
     ]
 
 # Default primary key field type
