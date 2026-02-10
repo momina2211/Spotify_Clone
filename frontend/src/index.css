@@ -59,11 +59,17 @@ input[type="range"]::-webkit-slider-track {
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  background: #1db954;
+  background: #fff;
   height: 12px;
   width: 12px;
   border-radius: 50%;
   margin-top: -4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+input[type="range"]:hover::-webkit-slider-thumb {
+  opacity: 1;
 }
 
 input[type="range"]::-moz-range-track {
@@ -73,9 +79,41 @@ input[type="range"]::-moz-range-track {
 }
 
 input[type="range"]::-moz-range-thumb {
-  background: #1db954;
+  background: #fff;
   height: 12px;
   width: 12px;
   border-radius: 50%;
   border: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+input[type="range"]:hover::-moz-range-thumb {
+  opacity: 1;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Better focus styles */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+/* Genre dropdown styling - make options visible with black text on white background */
+select.genre-select {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+select.genre-select option {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  padding: 8px;
 }

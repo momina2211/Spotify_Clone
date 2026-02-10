@@ -1,9 +1,13 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from users.views import UserViewSet, LoginView, UserProfileView, ArtistViewSet
+from users.views import (
+    UserViewSet, LoginView, UserProfileView, ArtistViewSet,
+    StudentVerificationViewSet
+)
 
 router = DefaultRouter()
 router.register('artists', ArtistViewSet, basename='artist')
+router.register('student-verification', StudentVerificationViewSet, basename='student-verification')
 
 urlpatterns = [
     path('users', UserViewSet.as_view(), name='user-list-create'),

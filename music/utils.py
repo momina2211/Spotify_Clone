@@ -1,28 +1,40 @@
-import boto3
 import os
 import logging
-from botocore.exceptions import ClientError
-from django.core.exceptions import ValidationError
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from django.conf import settings
+from django.db.models import F
 
-from music.models import Genre, Album
+from music.models import Genre, Album, Song, Playlist, PlaylistSong, FavoriteSong
+from users.role_enum import RoleEnum
+
+logger = logging.getLogger(__name__)
 
 
-def upload_to_s3(file_obj, folder="songs/"):
-    """Uploads a file to AWS S3 and returns the file URL"""
-
-    bucket_name = os.getenv("AWS_STORAGE_BUCKET_NAME", "spotify-audios")
-    object_name = f"{folder}{file_obj.name}"  # Store in 'songs/' folder
-
-    s3_client = boto3.client("s3")
-
+def save_file_locally(file_obj, folder="songs/"):
+    """Saves a file locally and returns the file URL"""
     try:
-        file_obj.seek(0)  # Reset file pointer
-        s3_client.upload_fileobj(file_obj, bucket_name, object_name)
-
-        file_url = f"https://{bucket_name}.s3.amazonaws.com/{object_name}"
+        # Reset file pointer
+        file_obj.seek(0)
+        
+        # Generate a unique filename to avoid conflicts
+        import uuid
+        file_extension = os.path.splitext(file_obj.name)[1]
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        file_path = os.path.join(folder, unique_filename)
+        
+        # Save the file using Django's default storage
+        saved_path = default_storage.save(file_path, ContentFile(file_obj.read()))
+        
+        # Return the URL
+        if hasattr(settings, 'MEDIA_URL'):
+            file_url = f"{settings.MEDIA_URL}{saved_path}"
+        else:
+            file_url = f"/media/{saved_path}"
+        
         return file_url
-    except ClientError as e:
-        logging.error(f"S3 Upload Error: {e}")
+    except Exception as e:
+        logging.error(f"Local File Upload Error: {e}")
         return None
 
 
@@ -90,3 +102,98 @@ def validate_image_file(file_obj):
         return "Image file is empty"
     
     return None
+
+
+def is_artist(user):
+    """Check if user is an artist"""
+    if not user or not user.is_authenticated:
+        return False
+    return getattr(user, 'role', None) == RoleEnum.ARTIST.value
+
+
+def increment_song_likes(song):
+    """Increment song likes counter atomically"""
+    Song.objects.filter(id=song.id).update(likes=F('likes') + 1)
+    song.refresh_from_db(fields=['likes'])
+
+
+def decrement_song_likes(song):
+    """Decrement song likes counter atomically"""
+    Song.objects.filter(id=song.id).update(likes=F('likes') - 1)
+    song.refresh_from_db(fields=['likes'])
+
+
+def increment_song_play_count(song):
+    """Increment song play count atomically"""
+    Song.objects.filter(id=song.id).update(play_count=F('play_count') + 1)
+    song.refresh_from_db(fields=['play_count'])
+
+
+def get_or_create_liked_songs_playlist(user):
+    """Get or create 'Liked Songs' playlist and ensure it's unique"""
+    liked_songs_playlist = Playlist.objects.filter(
+        user=user,
+        name="Liked Songs"
+    ).first()
+    
+    if not liked_songs_playlist:
+        liked_songs_playlist = Playlist.objects.create(
+            user=user,
+            name="Liked Songs",
+            is_public=False
+        )
+    else:
+        # Handle duplicates
+        duplicate_playlists = Playlist.objects.filter(
+            user=user,
+            name="Liked Songs"
+        ).exclude(id=liked_songs_playlist.id)
+        
+        if duplicate_playlists.exists():
+            # Merge songs from duplicates
+            for dup_playlist in duplicate_playlists:
+                for ps in dup_playlist.playlist_songs.all():
+                    PlaylistSong.objects.get_or_create(
+                        playlist=liked_songs_playlist,
+                        song=ps.song,
+                        defaults={'order': PlaylistSong.objects.filter(playlist=liked_songs_playlist).count()}
+                    )
+            duplicate_playlists.delete()
+    
+    return liked_songs_playlist
+
+
+def sync_favorites_to_playlist(user):
+    """Sync user's favorites to 'Liked Songs' playlist"""
+    liked_songs_playlist = get_or_create_liked_songs_playlist(user)
+    
+    favorites = FavoriteSong.objects.filter(user=user).select_related('song')
+    favorite_song_ids = set([fav.song.id for fav in favorites])
+    
+    existing_playlist_song_ids = set(
+        PlaylistSong.objects.filter(playlist=liked_songs_playlist)
+        .values_list('song_id', flat=True)
+    )
+    
+    # Add missing songs
+    missing_song_ids = favorite_song_ids - existing_playlist_song_ids
+    if missing_song_ids:
+        missing_songs = Song.objects.filter(id__in=missing_song_ids)
+        current_order = PlaylistSong.objects.filter(playlist=liked_songs_playlist).count()
+        for song in missing_songs:
+            PlaylistSong.objects.get_or_create(
+                playlist=liked_songs_playlist,
+                song=song,
+                defaults={'order': current_order}
+            )
+            current_order += 1
+    
+    # Remove songs no longer favorites
+    songs_to_remove = existing_playlist_song_ids - favorite_song_ids
+    if songs_to_remove:
+        PlaylistSong.objects.filter(
+            playlist=liked_songs_playlist,
+            song_id__in=songs_to_remove
+        ).delete()
+    
+    return liked_songs_playlist

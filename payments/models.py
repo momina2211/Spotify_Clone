@@ -36,6 +36,13 @@ class SubscriptionPlan(UUIDModel):
         blank=True,
         help_text=_('The associated Stripe Price object')
     )
+    stripe_price_id_string = models.CharField(
+        _('stripe price id string'),
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text=_('The Stripe Price ID as a string (for direct API usage)')
+    )
     price = models.DecimalField(
         _('price'),
         max_digits=10,
@@ -111,7 +118,7 @@ class SubscriptionPlan(UUIDModel):
                 'ad_free': True,
                 'offline_mode': True,
                 'audio_quality': 'high',
-                'skip_limit': float('inf'),
+                'skip_limit': None,  # None means unlimited
             }
         elif self.plan_type == self.PlanType.DUO:
             return {
@@ -119,7 +126,7 @@ class SubscriptionPlan(UUIDModel):
                 'ad_free': True,
                 'offline_mode': True,
                 'audio_quality': 'high',
-                'skip_limit': float('inf'),
+                'skip_limit': None,  # None means unlimited
                 'max_members': 2,
             }
         elif self.plan_type == self.PlanType.FAMILY:
@@ -128,7 +135,7 @@ class SubscriptionPlan(UUIDModel):
                 'ad_free': True,
                 'offline_mode': True,
                 'audio_quality': 'high',
-                'skip_limit': float('inf'),
+                'skip_limit': None,  # None means unlimited
                 'max_members': 6,
                 'parental_controls': True,
             }
@@ -138,7 +145,7 @@ class SubscriptionPlan(UUIDModel):
                 'ad_free': True,
                 'offline_mode': True,
                 'audio_quality': 'high',
-                'skip_limit': float('inf'),
+                'skip_limit': None,  # None means unlimited
                 'student_discount': True,
             }
         return default_features

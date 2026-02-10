@@ -51,6 +51,7 @@ THIRD_PARTY_APPS = [
     'debug_toolbar',
     'corsheaders',
     'djstripe',
+    'channels',
 ]
 INSTALLED_APPS += LOCAL_APPS + THIRD_PARTY_APPS
 MIDDLEWARE = [
@@ -132,12 +133,13 @@ AWS_S3_USERNAME=os.getenv('AWS_S3_USERNAME')
 AWS_S3_PASSWORD=os.getenv('AWS_S3_PASSWORD')
 
 # Stripe Configuration
+# Support both naming conventions: STRIPE_TEST_* and STRIPE_*
 STRIPE_LIVE_PUBLIC_KEY = os.environ.get("STRIPE_LIVE_PUBLIC_KEY")
 STRIPE_LIVE_SECRET_KEY = os.environ.get("STRIPE_LIVE_SECRET_KEY")
-STRIPE_TEST_PUBLIC_KEY = os.environ.get("STRIPE_TEST_PUBLIC_KEY")
-STRIPE_TEST_SECRET_KEY = os.environ.get("STRIPE_TEST_SECRET_KEY")
-STRIPE_LIVE_MODE = False  # Change to True in production
-DJSTRIPE_WEBHOOK_SECRET = os.environ.get("DJSTRIPE_WEBHOOK_SECRET")
+STRIPE_TEST_PUBLIC_KEY = os.environ.get("STRIPE_TEST_PUBLIC_KEY") or os.environ.get("STRIPE_PUBLIC_KEY")
+STRIPE_TEST_SECRET_KEY = os.environ.get("STRIPE_TEST_SECRET_KEY") or os.environ.get("STRIPE_SECRET_KEY")
+STRIPE_LIVE_MODE = os.environ.get("STRIPE_LIVE_MODE", "False").lower() == "true"
+DJSTRIPE_WEBHOOK_SECRET = os.environ.get("DJSTRIPE_WEBHOOK_SECRET") or os.environ.get("STRIPE_WEBHOOK_SECRET")
 DJSTRIPE_USE_NATIVE_JSONFIELD = True  # Recommended for new installations
 DJSTRIPE_FOREIGN_KEY_TO_FIELD = "id"
 
@@ -237,6 +239,34 @@ DJSTRIPE_FOREIGN_KEY_TO_FIELD = "id"
 
 # dj-stripe settings
 DJSTRIPE_SUBSCRIBER_MODEL = 'users.User'
+
+# AI Verification Settings
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
+ENABLE_AI_VERIFICATION = os.environ.get('ENABLE_AI_VERIFICATION', 'True').lower() == 'true'
+# Lower threshold (0.75) for immediate auto-approval of valid verifications
+# Set to 0.9 for stricter approval (requires manual review for medium confidence)
+AI_AUTO_APPROVE_THRESHOLD = float(os.environ.get('AI_AUTO_APPROVE_THRESHOLD', '0.75'))
+AI_AUTO_REJECT_THRESHOLD = float(os.environ.get('AI_AUTO_REJECT_THRESHOLD', '0.8'))
+
+# Celery Configuration
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+
+# Django Channels Configuration
+ASGI_APPLICATION = 'Spotify_Clone.asgi.application'
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [(os.environ.get('REDIS_HOST', 'localhost'), int(os.environ.get('REDIS_PORT', 6379)))],
+        },
+    },
+}
+
 
 
 
