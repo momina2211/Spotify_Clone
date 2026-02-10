@@ -111,13 +111,15 @@ export const playlistsAPI = {
 
 // Subscriptions API
 export const subscriptionsAPI = {
-  getAll: () => api.get('/subscriptions/'),
-  subscribe: (planId, frontendUrl) => api.post('/subscriptions/subscribe/', { 
+  getAll: () => api.get('/payments/subscriptions/'),
+  subscribe: (planId, frontendUrl) => api.post('/payments/subscriptions/subscribe/', { 
     plan_id: planId,
     frontend_url: frontendUrl 
   }),
-  cancel: () => api.post('/subscriptions/cancel/'),
-  getCurrent: () => api.get('/subscriptions/current/'),
+  cancel: () => api.post('/payments/subscriptions/cancel/'),
+  resume: () => api.post('/payments/subscriptions/resume/'),
+  getCurrent: () => api.get('/payments/subscriptions/current/'),
+  trialEligibility: () => api.get('/payments/subscriptions/trial_eligibility/'),
 };
 
 // Student Verification API

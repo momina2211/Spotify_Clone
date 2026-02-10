@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 import { useAuth } from '../context/AuthContext';
 import { songsAPI } from '../services/api';
@@ -10,6 +10,24 @@ export default function SongCard({ song, onFavoriteChange, showFavorite = true }
   const { isArtist } = useAuth();
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Check if song is favorited on mount and when song changes
+  useEffect(() => {
+    if (showFavorite && !isArtist && song?.id) {
+      checkFavoriteStatus();
+    }
+  }, [song?.id, showFavorite, isArtist]);
+
+  const checkFavoriteStatus = async () => {
+    try {
+      const response = await songsAPI.favorites();
+      const favoriteSongs = response.data || [];
+      const isFavorited = favoriteSongs.some(favSong => favSong.id === song.id);
+      setIsFavorite(isFavorited);
+    } catch (error) {
+      console.error('Failed to check favorite status:', error);
+    }
+  };
 
   const handlePlay = (e) => {
     e?.stopPropagation();

@@ -7,6 +7,6 @@ router = DefaultRouter()
 router.register(r'subscriptions', SubscriptionViewSet, basename='subscription')
 
 urlpatterns = [
-    path('', include(router.urls)),
-    path('webhooks/stripe/', stripe_webhook, name='stripe_webhook'),
+    path('payments/', include(router.urls)),
+    path('payments/webhooks/stripe/', stripe_webhook, name='stripe_webhook'),
 ]
