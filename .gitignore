@@ -1,10 +1,153 @@
-.idea
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv
+pipenv/
+Pipfile.lock
+
+# Django
+*.log
+*.pot
+*.pyc
+db.sqlite3
+db.sqlite3-journal
+celerybeat-schedule
+celerybeat-schedule.db
+*.pid
+*.seed
+*.pid.lock
+
+# Media files (user-uploaded content)
+media/
+media/**
+!media/.gitkeep
+album_covers/
+profile_pics/
+
+# Static files (collected)
+staticfiles/
+static_root/
+static_collected/
+
+# Environment variables
 .env
-__pycache__
-db.sqlite 3
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
 
 # Frontend
 frontend/node_modules/
 frontend/dist/
+frontend/build/
 frontend/.env
+frontend/.env.local
 frontend/.vite/
+frontend/.next/
+frontend/.nuxt/
+frontend/.cache/
+frontend/.parcel-cache/
+frontend/.svelte-kit/
+frontend/.turbo/
+frontend/.vercel/
+frontend/coverage/
+frontend/.nyc_output/
+frontend/*.log
+
+# Testing
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Celery
+celerybeat-schedule
+celerybeat-schedule.db
+celerybeat.pid
+
+# Redis
+dump.rdb
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Optional: Keep empty directories
+!media/.gitkeep
+!static/.gitkeep

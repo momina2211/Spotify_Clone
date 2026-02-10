@@ -19,14 +19,18 @@ from django.urls import path,include
 from rest_framework.authtoken import views
 import debug_toolbar
 from django.conf import settings
+from django.conf.urls.static import static
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('users.urls')),
     path('api/', include('music.urls')),
-    # path('api/', include('payments.urls')),
+    path('api/', include('payments.urls')),
 path('api-token-auth/', views.obtain_auth_token),
 ]
 if settings.DEBUG:
     urlpatterns += [
         path('__debug__/', include(debug_toolbar.urls)),
     ]
+    # Serve media files in development
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

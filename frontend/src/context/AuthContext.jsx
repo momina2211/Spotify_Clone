@@ -27,10 +27,26 @@ export const AuthProvider = ({ children }) => {
   const loadUser = async () => {
     try {
       const response = await authAPI.getProfile();
-      setUser(response.data);
+      const userData = response.data;
+      // Include role from user object if available
+      if (userData.user && userData.user.role) {
+        userData.role = userData.user.role;
+      }
+      // Also check profile_type as fallback
+      if (!userData.role && userData.profile_type) {
+        userData.role = userData.profile_type;
+      }
+      console.log('User data loaded:', userData); // Debug log
+      setUser(userData);
     } catch (error) {
       console.error('Failed to load user:', error);
-      logout();
+      // Only logout if it's an authentication error (401/403), not on every error
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        logout();
+      } else {
+        // For other errors, just log but don't clear user data
+        console.warn('Error loading user, but keeping existing user data');
+      }
     } finally {
       setLoading(false);
     }
@@ -132,6 +148,22 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
   };
 
+  const refreshUser = async () => {
+    if (token) {
+      await loadUser();
+    }
+  };
+
+  // Check role from multiple possible locations
+  const userRole = user?.role || user?.user?.role || user?.profile_type;
+  const isArtist = userRole === 2;
+  const isUser = !isArtist;
+  
+  // Debug log
+  if (user) {
+    console.log('User role check:', { userRole, isArtist, user });
+  }
+
   const value = {
     user,
     token,
@@ -139,7 +171,11 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    loadUser,
+    refreshUser,
     isAuthenticated: !!token,
+    isArtist,
+    isUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
